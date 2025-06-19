@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "761474036420",
+    "project_id": "appsmrtgt",
+    "storage_bucket": "appsmrtgt.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761474036420:android:f1398c70c1b46eac350f91",
+        "android_client_info": {
+          "package_name": "com.smartgateapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiQToiLPgLO7hoJZ_X3JOQgLW3Kjzl_Rk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

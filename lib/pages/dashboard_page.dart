@@ -32,7 +32,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> fetchAccessLogs() async {
     final url = Uri.parse(
-      'https://a1b6-103-164-80-99.ngrok-free.app/api/access-logs/${widget.userId}',
+      'https://4986-103-164-80-99.ngrok-free.app/api/access-logs/${widget.userId}',
     );
 
     try {
@@ -77,8 +77,19 @@ class _DashboardPageState extends State<DashboardPage> {
           IconButton(
             icon: const Icon(Icons.notifications),
             tooltip: 'Tes Notifikasi',
-            onPressed: () {
-              showLocalNotification(widget.userId.toString());
+            onPressed: () async {
+              if (accessLogs.isNotEmpty) {
+                final lastLog = accessLogs.first; // ambil log terbaru
+                final tagUid = lastLog['tags_id'].toString();
+                debugPrint('🔔 Testing notifikasi dengan tag_uid: $tagUid');
+                showLocalNotification(widget.userId.toString(), tagUid);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tidak ada log untuk uji notifikasi'),
+                  ),
+                );
+              }
             },
           ),
           IconButton(

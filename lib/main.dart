@@ -39,13 +39,20 @@ void main() async {
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
     onDidReceiveNotificationResponse: (NotificationResponse response) {
-      final payload = response.payload ?? '';
+      final payloadJson = response.payload ?? '{}';
+      final data = jsonDecode(payloadJson);
+      final userId = data['user_id'];
+      final tagUid = data['tag_uid'];
       if (response.actionId == 'yes') {
-        debugPrint('✅ Pengguna memilih YES untuk user_id: $payload');
-        _sendVerificationResponse(payload, true);
+        debugPrint(
+          '✅ Pengguna memilih YES untuk user_id: $userId, tag: $tagUid',
+        );
+        _sendVerificationResponse(userId, tagUid, true);
       } else if (response.actionId == 'no') {
-        debugPrint('❌ Pengguna memilih NO untuk user_id: $payload');
-        _sendVerificationResponse(payload, false);
+        debugPrint(
+          '❌ Pengguna memilih NO untuk user_id: $userId, tag: $tagUid',
+        );
+        _sendVerificationResponse(userId, tagUid, false);
       }
     },
   );
@@ -56,7 +63,7 @@ void main() async {
   // 📩 Saat user klik notifikasi dari tray
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     if (message.data['type'] == 'verification') {
-      showLocalNotification(message.data['user_id']);
+      showLocalNotification(message.data['user_id'], message.data['tag_uid']);
     }
   });
 
@@ -99,7 +106,9 @@ Future<void> saveFcmToken(String userId) async {
     debugPrint('📡 Mengirim FCM token ke server: $fcmToken');
 
     final response = await http.post(
-      Uri.parse('https://a1b6-103-164-80-99.ngrok-free.app/api/save-fcm-token'),
+      Uri.parse(
+        'https://4986-103-164-80-99.ngrok-free.app/api/save-fcm-token',
+      ),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -115,7 +124,7 @@ Future<void> saveFcmToken(String userId) async {
   }
 }
 
-Future<void> showLocalNotification(String userId) async {
+Future<void> showLocalNotification(String userId, String tagUid) async {
   const AndroidNotificationDetails androidPlatformChannelSpecifics =
       AndroidNotificationDetails(
         'verification_channel',
@@ -132,26 +141,32 @@ Future<void> showLocalNotification(String userId) async {
     android: androidPlatformChannelSpecifics,
   );
 
+  final payload = jsonEncode({'user_id': userId, 'tag_uid': tagUid}); // ✅
+
   await flutterLocalNotificationsPlugin.show(
     0,
     'Verifikasi Akses',
     'Apakah anda ingin membuka gate?',
     platformChannelSpecifics,
-    payload: userId
+    payload: payload,
   );
 }
 
-Future<void> _sendVerificationResponse(String userId, bool approved) async {
+Future<void> _sendVerificationResponse(String userId, String tagUid, bool approved) async {
   try {
     final response = await http.post(
       Uri.parse(
-        'https://a1b6-103-164-80-99.ngrok-free.app/api/verify-response',
+        'https://4986-103-164-80-99.ngrok-free.app/api/verify-response',
       ),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'user_id': userId, 'approved': approved}),
+      body: jsonEncode({
+        'user_id': userId,
+        'tag_uid': tagUid,
+        'approved': approved,
+      }),
     );
 
     debugPrint('📤 Respon verifikasi dikirim: ${response.statusCode}');

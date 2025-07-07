@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'profile_page.dart';
-import '../main.dart' show showLocalNotification;
 
 class DashboardPage extends StatefulWidget {
   final int userId;
@@ -32,7 +31,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> fetchAccessLogs() async {
     final url = Uri.parse(
-      'https://4986-103-164-80-99.ngrok-free.app/api/access-logs/${widget.userId}',
+      'https://b6b4-103-164-80-99.ngrok-free.app/api/access-logs/${widget.userId}',
     );
 
     try {
@@ -68,6 +67,70 @@ class _DashboardPageState extends State<DashboardPage> {
     await fetchAccessLogs();
   }
 
+  Future<void> _sendVerificationResponse(
+    String userId,
+    String tagUid,
+    bool approved,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'https://b6b4-103-164-80-99.ngrok-free.app/api/verify-response',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'user_id': userId,
+          'tag_uid': tagUid,
+          'response': approved ? 'yes' : 'no',
+        }),
+      );
+
+      debugPrint('📤 Respon verifikasi dikirim: ${response.statusCode}');
+      debugPrint('📨 Body: ${response.body}');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Respon "${approved ? 'YES' : 'NO'}" telah dikirim.'),
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('❌ Gagal: respons bukan 200');
+      }
+    } catch (e) {
+      debugPrint('❌ Gagal kirim respon verifikasi: $e');
+    }
+  }
+
+  void _showVerificationDialog(String userId, String tagUid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Verifikasi Akses'),
+        content: const Text('Apakah Anda ingin membuka gate?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _sendVerificationResponse(userId, tagUid, false);
+            },
+            child: const Text('NO'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _sendVerificationResponse(userId, tagUid, true);
+            },
+            child: const Text('YES'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,18 +138,50 @@ class _DashboardPageState extends State<DashboardPage> {
         title: Text('Halo, ${widget.userName}'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.send),
+            tooltip: 'Tes Kirim Notifikasi dari Laravel',
+            onPressed: () async {
+              final tagUid = 'E2804850'; // tag test kamu
+              final userId = widget.userId;
+
+              final response = await http.post(
+                Uri.parse('https://b6b4-103-164-80-99.ngrok-free.app/api/send-verification'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                },
+                body: jsonEncode({'user_id': userId, 'tag_uid': tagUid}),
+              );
+
+              if (response.statusCode == 200) {
+                debugPrint('✅ Notifikasi dikirim: ${response.body}');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Notifikasi berhasil dikirim!')),
+                );
+              } else {
+                debugPrint('❌ Gagal kirim notifikasi: ${response.statusCode}');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Gagal kirim notifikasi')),
+                );
+              }
+            },
+          ),
+
+          IconButton(
             icon: const Icon(Icons.notifications),
-            tooltip: 'Tes Notifikasi',
+            tooltip: 'Tes Verifikasi Gate',
             onPressed: () async {
               if (accessLogs.isNotEmpty) {
-                final lastLog = accessLogs.first; // ambil log terbaru
+                final lastLog = accessLogs.first;
                 final tagUid = lastLog['tags_id'].toString();
-                debugPrint('🔔 Testing notifikasi dengan tag_uid: $tagUid');
-                showLocalNotification(widget.userId.toString(), tagUid);
+                debugPrint(
+                  '🔔 Testing verifikasi dialog dengan tag_uid: $tagUid',
+                );
+                _showVerificationDialog(widget.userId.toString(), tagUid);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Tidak ada log untuk uji notifikasi'),
+                    content: Text('Tidak ada log untuk uji verifikasi'),
                   ),
                 );
               }
@@ -105,9 +200,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     userEmail: widget.userEmail,
                   ),
                 ),
-              ).then(
-                (_) => _refreshLogs(),
-              ); // Refresh setelah kembali dari profil
+              ).then((_) => _refreshLogs());
             },
           ),
         ],

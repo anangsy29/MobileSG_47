@@ -39,7 +39,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://4986-103-164-80-99.ngrok-free.app/api/change-password'),
+        Uri.parse('https://b6b4-103-164-80-99.ngrok-free.app/api/change-password'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
